@@ -8,7 +8,7 @@ The result seems not good. Test reward converged to about -20 after training for
 
 ![first result](./fig/1st.gif)
 
-As described by README.md of RLSchool/quadrotor, "Yellow arrow is the expected velocity vector; orange arrow is the real velocity vector." THe result should look like this, the yellow vector and orange vector are as similar as possible. 
+As described by README.md of RLSchool/quadrotor, "Yellow arrow is the expected velocity vector; orange arrow is the real velocity vector." So in the good result, the yellow vector and orange vector should be as similar as possible. 
 But my quadrotor just tends to fall down slowly and the two vectors are not similar at all! 
 
 # Second Edition
@@ -31,7 +31,7 @@ def get_rotation_matrix(yaw, pitch, roll):
 
     return r_matrix
 ```
-The by ```np.matmul(r_matrix, velocity_in_global)```, we can get the expected next velocity in local coordinate.
+Then by ```np.matmul(r_matrix, velocity_in_global)```, we can get the expected next velocity in local coordinate.
 
 On the first hand, I added the above local expected velocity into the obs, On the other hand, I added the inner product between next velocity and next expected velocity (both in local coordinate) into the reward, as ''v_diff'.
 I hope this additional reward could lead the model to fit the controlling of velocity. By the way, the scale is much different between real reward and v_diff, so I multiplied a scale-factor (0.01) to the v_diff.
