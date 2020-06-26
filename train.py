@@ -29,24 +29,33 @@ REWARD_LIST = []
 V_DIFF_LIST = []
 STEPS_LIST = []
 
+
+def _get_velocity_diff(velocity, velocity_target):
+    vt_x, vt_y, vt_z = velocity_target
+    diff = abs(vt_x - velocity[0]) + \
+           abs(vt_y - velocity[1]) + \
+           abs(vt_z - velocity[2])
+    return diff
+
+
 def run_episode(env, agent, rpm, total_steps):
     obs = env.reset()
     total_reward, steps = 0, 0
     while True:
         steps += 1
-        if obs.shape[0] == 19:
-            yaw = obs[14]
-            pitch = obs[12]
-            roll = obs[13]
-            next_target_g_v_x = obs[16]
-            next_target_g_v_y = obs[17]
-            next_target_g_v_z = obs[18]
-            r_matrix = get_rotation_matrix(yaw, pitch, roll)
-            next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
-                    [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
-            obs = np.append(obs, next_expected_v)          # extend the obs
-        else:
-            next_expected_v = obs[19:]
+        # if obs.shape[0] == 19:
+        #     yaw = obs[14]
+        #     pitch = obs[12]
+        #     roll = obs[13]
+        #     next_target_g_v_x = obs[16]
+        #     next_target_g_v_y = obs[17]
+        #     next_target_g_v_z = obs[18]
+            # r_matrix = get_rotation_matrix(yaw, pitch, roll)
+            # next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
+            #         [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
+            # obs = np.append(obs, next_expected_v)          # extend the obs
+        # else:
+        #     next_expected_v = obs[19:]
 
         batch_obs = np.expand_dims(obs, axis=0)
         action = agent.predict(batch_obs.astype('float32'))
@@ -58,28 +67,30 @@ def run_episode(env, agent, rpm, total_steps):
         # 给输出动作增加探索扰动，输出限制在 [-1.0, 1.0] 范围内
         action = np.clip(np.random.normal(action, 1.0), -1.0, 1.0)
         # 动作映射到对应的 实际动作取值范围 内, action_mapping是从parl.utils那里import进来的函数
-        action_real = action_mapping(action, env.action_space.low[0],
+        action = action_mapping(action, env.action_space.low[0],
                                 env.action_space.high[0])
         next_obs, reward, done, info = env.step(action)
 
         next_real_v = np.array([next_obs[0], next_obs[1], next_obs[2]], dtype="float32")
-        v_diff = np.dot(next_expected_v, next_real_v)
-        reward_new = reward + v_diff / 100.0
+        next_expected_v = np.array([obs[16], obs[17], obs[18]], dtype="float32")
+        # v_diff = np.dot(next_expected_v, next_real_v)
+        v_diff = _get_velocity_diff(next_real_v, next_expected_v)
+        reward_new = reward - v_diff / 100.0
         # logger.info("reward: {0}, v_diff: {1}".format(reward, v_diff))
         REWARD_LIST.append(reward)
-        V_DIFF_LIST.append(v_diff / 100.0)
+        V_DIFF_LIST.append(-v_diff / 100.0)
         STEPS_LIST.append(total_steps + steps)
 
-        yaw = next_obs[14]
-        pitch = next_obs[12]
-        roll = next_obs[13]
-        next_target_g_v_x = next_obs[16]
-        next_target_g_v_y = next_obs[17]
-        next_target_g_v_z = next_obs[18]
-        r_matrix = get_rotation_matrix(yaw, pitch, roll)
-        next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
-            [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
-        next_obs = np.append(next_obs, next_expected_v)  # extend the obs
+        # yaw = next_obs[14]
+        # pitch = next_obs[12]
+        # roll = next_obs[13]
+        # next_target_g_v_x = next_obs[16]
+        # next_target_g_v_y = next_obs[17]
+        # next_target_g_v_z = next_obs[18]
+        # r_matrix = get_rotation_matrix(yaw, pitch, roll)
+        # next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
+        #     [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
+        # next_obs = np.append(next_obs, next_expected_v)  # extend the obs
 
         rpm.append(obs, action, REWARD_SCALE * reward_new, next_obs, done)
 
@@ -103,17 +114,17 @@ def evaluate(env, agent):
         obs = env.reset()
         total_reward, steps = 0, 0
         while True:
-            if obs.shape[0] == 19:
-                yaw = obs[14]
-                pitch = obs[12]
-                roll = obs[13]
-                next_target_g_v_x = obs[16]
-                next_target_g_v_y = obs[17]
-                next_target_g_v_z = obs[18]
-                r_matrix = get_rotation_matrix(yaw, pitch, roll)
-                next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
-                    [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
-                obs = np.append(obs, next_expected_v)  # extend the obs
+            # if obs.shape[0] == 19:
+            #     yaw = obs[14]
+            #     pitch = obs[12]
+            #     roll = obs[13]
+            #     next_target_g_v_x = obs[16]
+            #     next_target_g_v_y = obs[17]
+            #     next_target_g_v_z = obs[18]
+            #     r_matrix = get_rotation_matrix(yaw, pitch, roll)
+            #     next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
+            #         [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
+            #     obs = np.append(obs, next_expected_v)  # extend the obs
             batch_obs = np.expand_dims(obs, axis=0)
             action = agent.predict(batch_obs.astype('float32'))
             action = np.clip(action, -1.0, 1.0)
@@ -127,16 +138,16 @@ def evaluate(env, agent):
 
             next_obs, reward, done, info = env.step(action)
 
-            yaw = next_obs[14]
-            pitch = next_obs[12]
-            roll = next_obs[13]
-            next_target_g_v_x = next_obs[16]
-            next_target_g_v_y = next_obs[17]
-            next_target_g_v_z = next_obs[18]
-            r_matrix = get_rotation_matrix(yaw, pitch, roll)
-            next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
-                [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
-            next_obs = np.append(next_obs, next_expected_v)  # extend the obs
+            # yaw = next_obs[14]
+            # pitch = next_obs[12]
+            # roll = next_obs[13]
+            # next_target_g_v_x = next_obs[16]
+            # next_target_g_v_y = next_obs[17]
+            # next_target_g_v_z = next_obs[18]
+            # r_matrix = get_rotation_matrix(yaw, pitch, roll)
+            # next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
+            #     [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
+            # next_obs = np.append(next_obs, next_expected_v)  # extend the obs
 
             obs = next_obs
             total_reward += reward
@@ -159,12 +170,12 @@ if __name__ == "__main__":
 
     model = QuadrotorModel(act_dim=act_dim)
     algorithm = DDPG(model, gamma=GAMMA, tau=TAU, actor_lr=ACTOR_LR, critic_lr=CRITIC_LR)
-    agent = QuadrotorAgent(algorithm=algorithm, obs_dim=obs_dim + 3, act_dim=act_dim)
+    agent = QuadrotorAgent(algorithm=algorithm, obs_dim=obs_dim, act_dim=act_dim)
 
     # parl库也为DDPG算法内置了ReplayMemory，可直接从 parl.utils 引入使用
-    rpm = ReplayMemory(int(MEMORY_SIZE), obs_dim + 3, act_dim)
+    rpm = ReplayMemory(int(MEMORY_SIZE), obs_dim, act_dim)
 
-    best_test_reward = -30
+    best_test_reward = -800
     # agent.restore('model_dir/best.ckpt')
 
     # 启动训练
@@ -178,9 +189,9 @@ if __name__ == "__main__":
         if total_steps // TEST_EVERY_STEPS >= test_flag:  # 每隔一定step数，评估一次模型
             # plot
             plt.clf()
-            plt.plot(STEPS_LIST, V_DIFF_LIST, c='b', label='v_diff / 100.0')
+            plt.plot(STEPS_LIST, V_DIFF_LIST, c='b', label='-v_diff / 100.0')
             plt.plot(STEPS_LIST, REWARD_LIST, c='r', label='Reward')
-            plt.title("Reward VS v_diff")
+            plt.title("Reward VS -v_diff")
             plt.xlabel("global steps")
             plt.legend()
             plt.show()
