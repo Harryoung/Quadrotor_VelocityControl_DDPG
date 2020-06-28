@@ -258,14 +258,14 @@ class QuadrotorSim(object):
             self.rotation_matrix)
 
     def get_state(self):
-        body_velocity = np.matmul(self._coordination_converter_to_body,
+        self.body_velocity = np.matmul(self._coordination_converter_to_body,
                                   self.global_velocity)
         body_position = np.matmul(self._coordination_converter_to_body,
                                   self.global_position)
         return {
-            'b_v_x': body_velocity[0],
-            'b_v_y': body_velocity[1],
-            'b_v_z': body_velocity[2],
+            'b_v_x': self.body_velocity[0],
+            'b_v_y': self.body_velocity[1],
+            'b_v_z': self.body_velocity[2],
             'b_x': body_position[0],
             'b_y': body_position[1],
             'b_z': body_position[2]
@@ -323,3 +323,6 @@ class QuadrotorSim(object):
 
         self._restore_state(current_state)
         return velocity_lst
+
+    def get_coordination_converter_to_body(self):
+        return self._coordination_converter_to_body

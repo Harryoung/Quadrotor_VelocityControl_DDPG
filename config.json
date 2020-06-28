@@ -48,12 +48,12 @@
     "x": 0,
     "y": 0,
     "z": 0,
-    "noisy": 0.0
+    "noisy": 2.0
   },
   "init_angular_velocity": {
     "x": 0,
     "y": 0,
     "z": 0,
-    "noisy": 0.0
+    "noisy": 5.0
   }
 }

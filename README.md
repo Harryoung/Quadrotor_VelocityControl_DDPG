@@ -69,3 +69,14 @@ Now the code is running...
 # BUG
 Oh my GOD! I found a stupid bug in my code! Now I think maybe the bug caused my quadrotor to fall down!  ╮(╯﹏╰）╭
 
+# New Discoveries
+After debugging for a whole day, I found some possible bugs in the RLSchool source code as described [here](https://github.com/PaddlePaddle/RLSchool/issues/30).
+
+The ideal result is like this.
+
+![Standard_answer](./fig/standard_answer.gif)
+
+Here I just used the sampled action list to get target velocity list as input actions.
+
+# Final trial
+After modified the target velocity's coordinate and the factor for velocity difference in reward calculation, I put the converted next expected velocity in body coordinate into the obs and start to train again.

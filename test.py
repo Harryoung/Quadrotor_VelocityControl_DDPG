@@ -91,7 +91,7 @@ def get_rotation_matrix(yaw, pitch, roll):
                        [0, math.sin(roll), math.cos(roll)]], dtype="float32")
     r_matrix = np.matmul(m_roll, np.matmul(m_pitch, m_yaw))
 
-    return r_matrix
+    return np.linalg.inv(r_matrix)
 
 
 def get_action_lst(env):

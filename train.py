@@ -45,19 +45,19 @@ def run_episode(env, agent, rpm, total_steps):
     total_reward, steps = 0, 0
     while True:
         steps += 1
-        # if obs.shape[0] == 19:
-        #     yaw = obs[14]
-        #     pitch = obs[12]
-        #     roll = obs[13]
-        #     next_target_g_v_x = obs[16]
-        #     next_target_g_v_y = obs[17]
-        #     next_target_g_v_z = obs[18]
-            # r_matrix = get_rotation_matrix(yaw, pitch, roll)
-            # next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
-            #         [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
-            # obs = np.append(obs, next_expected_v)          # extend the obs
-        # else:
-        #     next_expected_v = obs[19:]
+        if obs.shape[0] == 19:
+            yaw = obs[14]
+            pitch = obs[12]
+            roll = obs[13]
+            next_target_g_v_x = obs[16]
+            next_target_g_v_y = obs[17]
+            next_target_g_v_z = obs[18]
+            r_matrix = get_rotation_matrix(yaw, pitch, roll)
+            next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
+                    [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
+            obs = np.append(obs, next_expected_v)          # extend the obs
+        else:
+            next_expected_v = obs[19:]
 
         batch_obs = np.expand_dims(obs, axis=0)
         action = agent.predict(batch_obs.astype('float32'))
@@ -83,16 +83,17 @@ def run_episode(env, agent, rpm, total_steps):
         # V_DIFF_LIST.append(-v_diff / 10.0)
         STEPS_LIST.append(total_steps + steps)
 
-        # yaw = next_obs[14]
-        # pitch = next_obs[12]
-        # roll = next_obs[13]
-        # next_target_g_v_x = next_obs[16]
-        # next_target_g_v_y = next_obs[17]
-        # next_target_g_v_z = next_obs[18]
-        # r_matrix = get_rotation_matrix(yaw, pitch, roll)
-        # next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
-        #     [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
-        # next_obs = np.append(next_obs, next_expected_v)  # extend the obs
+        yaw = next_obs[14]
+        pitch = next_obs[12]
+        roll = next_obs[13]
+        next_target_g_v_x = next_obs[16]
+        next_target_g_v_y = next_obs[17]
+        next_target_g_v_z = next_obs[18]
+        r_matrix_ypr = get_rotation_matrix(yaw, pitch, roll)
+        r_matrix = env.simulator.get_coordination_converter_to_body()
+        next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
+            [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
+        next_obs = np.append(next_obs, next_expected_v)  # extend the obs
 
         rpm.append(obs, action, REWARD_SCALE * reward, next_obs, done)
 
@@ -116,17 +117,17 @@ def evaluate(env, agent):
         obs = env.reset()
         total_reward, steps = 0, 0
         while True:
-            # if obs.shape[0] == 19:
-            #     yaw = obs[14]
-            #     pitch = obs[12]
-            #     roll = obs[13]
-            #     next_target_g_v_x = obs[16]
-            #     next_target_g_v_y = obs[17]
-            #     next_target_g_v_z = obs[18]
-            #     r_matrix = get_rotation_matrix(yaw, pitch, roll)
-            #     next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
-            #         [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
-            #     obs = np.append(obs, next_expected_v)  # extend the obs
+            if obs.shape[0] == 19:
+                yaw = obs[14]
+                pitch = obs[12]
+                roll = obs[13]
+                next_target_g_v_x = obs[16]
+                next_target_g_v_y = obs[17]
+                next_target_g_v_z = obs[18]
+                r_matrix = get_rotation_matrix(yaw, pitch, roll)
+                next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
+                    [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
+                obs = np.append(obs, next_expected_v)  # extend the obs
             batch_obs = np.expand_dims(obs, axis=0)
             action = agent.predict(batch_obs.astype('float32'))
             action = np.clip(action, -1.0, 1.0)
@@ -140,16 +141,16 @@ def evaluate(env, agent):
 
             next_obs, reward, done, info = env.step(action)
 
-            # yaw = next_obs[14]
-            # pitch = next_obs[12]
-            # roll = next_obs[13]
-            # next_target_g_v_x = next_obs[16]
-            # next_target_g_v_y = next_obs[17]
-            # next_target_g_v_z = next_obs[18]
-            # r_matrix = get_rotation_matrix(yaw, pitch, roll)
-            # next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
-            #     [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
-            # next_obs = np.append(next_obs, next_expected_v)  # extend the obs
+            yaw = next_obs[14]
+            pitch = next_obs[12]
+            roll = next_obs[13]
+            next_target_g_v_x = next_obs[16]
+            next_target_g_v_y = next_obs[17]
+            next_target_g_v_z = next_obs[18]
+            r_matrix = get_rotation_matrix(yaw, pitch, roll)
+            next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
+                [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
+            next_obs = np.append(next_obs, next_expected_v)  # extend the obs
 
             obs = next_obs
             total_reward += reward
@@ -173,12 +174,12 @@ if __name__ == "__main__":
 
     model = QuadrotorModel(act_dim=act_dim)
     algorithm = DDPG(model, gamma=GAMMA, tau=TAU, actor_lr=ACTOR_LR, critic_lr=CRITIC_LR)
-    agent = QuadrotorAgent(algorithm=algorithm, obs_dim=obs_dim, act_dim=act_dim)
+    agent = QuadrotorAgent(algorithm=algorithm, obs_dim=obs_dim + 3, act_dim=act_dim)
 
     # parl库也为DDPG算法内置了ReplayMemory，可直接从 parl.utils 引入使用
-    rpm = ReplayMemory(int(MEMORY_SIZE), obs_dim, act_dim)
+    rpm = ReplayMemory(int(MEMORY_SIZE), obs_dim + 3, act_dim)
 
-    best_test_reward = -1000
+    best_test_reward = -5000
     # agent.restore('model_dir/best.ckpt')
 
     # 启动训练
