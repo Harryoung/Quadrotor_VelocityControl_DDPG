@@ -62,7 +62,10 @@ def _get_velocity_diff(self, velocity_target):
 The reward consists of three parts: the energy cost, healthy_reward (const 0 according to the code, something wrong?) and the velocity difference computed by Manhaton Distance.
 The scale factor of v_diff they use is 0.001, maybe too small I think.
 
-Another important thing is that the next expected velocity is actually in the local coordinate according to the code!
-This is so frustrating, and I think I need to open an issue there. In this edition, I plan to update the v_diff by treating the next expected velocity as in the local coordinate.
+Another important thing is that **the next expected velocity is actually in the local coordinate according to the code**!
+This is so frustrating, and I think I need to **open an issue there**. In this edition, I plan to update the v_diff by treating the next expected velocity as in the local coordinate.
 Now the code is running...
+
+# BUG
+Oh my GOD! I found a stupid bug in my code! Now I think maybe the bug caused my quadrotor to fall down!  ╮(╯﹏╰）╭
 

@@ -9,6 +9,8 @@ from parl.utils import action_mapping  # 将神经网络输出映射到对应的
 from parl.utils import ReplayMemory  # 经验回放
 from rlschool import make_env  # 使用 RLSchool 创建飞行器环境
 from parl.algorithms import DDPG
+from quadrotorsim import QuadrotorSim
+from env import Quadrotor
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
@@ -28,7 +30,7 @@ TEST_EVERY_STEPS = 1e4  # 每个N步评估一下算法效果，每次评估5个e
 
 def evaluate(env, agent):
     eval_reward = []
-    for i in range(1):
+    for i in range(5):
         obs = env.reset()
         total_reward, steps = 0, 0
         while True:
@@ -92,7 +94,86 @@ def get_rotation_matrix(yaw, pitch, roll):
     return r_matrix
 
 
+def get_action_lst(env):
+    obs = env.reset()
+    b_v_x_0 = obs[0]
+    b_v_y_0 = obs[1]
+    b_v_z_0 = obs[2]
+    next_v_x_0 = obs[16]
+    next_v_y_0 = obs[17]
+    next_v_z_0 = obs[18]
+
+    simulator = QuadrotorSim()
+    simulator.get_config('config.json')
+    simulator.reset()
+
+    sim_v_g = simulator.global_velocity
+    sim_v_b = np.matmul(simulator._coordination_converter_to_body, simulator.global_velocity)
+
+    velocity_lst = []
+    action_lst = []
+    np.random.seed(0)
+    for _ in range(1000):
+        act = np.random.uniform(
+            low=0.10, high=15.0, size=4)
+        act = act.astype(np.float32)
+        action_lst.append(act)
+        simulator.step(act.tolist(), 0.01)
+
+        next_obs, reward, done, info = env.step(np.array([15,15,15,15], dtype='float32'))
+
+        b_v_x = info['b_v_x']
+        b_v_y = info['b_v_y']
+        b_v_z = info['b_v_z']
+        next_v_x = info['next_target_g_v_x']
+        next_v_y = info['next_target_g_v_y']
+        next_v_z = info['next_target_g_v_z']
+
+        # body_velocity = np.matmul(
+        #         #     simulator._coordination_converter_to_body,
+        #         #     simulator.global_velocity)
+        #         # velocity_lst.append(list(body_velocity))
+        g_v = 1 * simulator.global_velocity
+        velocity_lst.append(g_v)
+    return action_lst
+
+
+def expected_behave(env, action_lst):
+    # evaluate with action_lst
+    eval_reward = []
+    for i in range(2):
+        env.reset()
+        total_reward, steps = 0, 0
+        index = 0
+        while True:
+            action = action_lst[index]
+            index += 1
+            next_obs, reward, done, info = env.step(action)
+            next_expected_v_x = info['next_target_g_v_x']
+            next_expected_v_y = info['next_target_g_v_y']
+            next_expected_v_z = info['next_target_g_v_z']
+            b_v_x = info['b_v_x']
+            b_v_y = info['b_v_y']
+            b_v_z = info['b_v_z']
+            # next_v_x = velocity_lst[index][0]
+            # next_v_y = velocity_lst[index][1]
+            # next_v_z = velocity_lst[index][2]
+            total_reward += reward
+            steps += 1
+
+            if done:
+                break
+            env.render()
+        eval_reward.append(total_reward)
+    return np.mean(eval_reward)
+
 if __name__ == "__main__":
+    env1 = Quadrotor(task="velocity_control", seed=0)
+    env2 = Quadrotor(task="velocity_control", seed=0)
+    action_lst = get_action_lst(env1)
+    reward = expected_behave(env2, action_lst)
+    print('best reward: {}'.format(reward))
+    exit()
     # 创建飞行器环境
     env = make_env("Quadrotor", task="velocity_control", seed=0)
     env.reset()
@@ -108,7 +189,7 @@ if __name__ == "__main__":
     # parl库也为DDPG算法内置了ReplayMemory，可直接从 parl.utils 引入使用
     rpm = ReplayMemory(int(MEMORY_SIZE), obs_dim, act_dim)
 
-    ckpt = 'model_dir/best.ckpt'  # 请设置ckpt为你训练中效果最好的一次评估保存的模型文件名称
+    ckpt = 'model_dir/best_v_diff_10.ckpt'  # 请设置ckpt为你训练中效果最好的一次评估保存的模型文件名称
     agent.restore(ckpt)
     evaluate_reward = evaluate(env, agent)
     logger.info('Evaluate reward: {}'.format(evaluate_reward))  # 打印评估的reward
