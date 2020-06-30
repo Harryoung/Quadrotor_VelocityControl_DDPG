@@ -125,6 +125,9 @@ which is more mathematically elegant. Second, manhattan distance is unstable. As
 
 # how to play
 First install the packages required. `pip install -r requirements.txt`
+
 Using `python3 train.py` to train from scratch.
+
 Uncomment the `agent.restore('model_dir/best.ckpt')` in train.py to continue to train.
+
 Using `python3 test.py` to evaluate.
