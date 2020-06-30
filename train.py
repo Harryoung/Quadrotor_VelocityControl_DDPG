@@ -12,6 +12,7 @@ from quadrotorsim import QuadrotorSim
 from test import get_rotation_matrix
 from matplotlib import pyplot as plt
 
+# disable gpu
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -46,13 +47,14 @@ def run_episode(env, agent, rpm, total_steps):
     while True:
         steps += 1
         if obs.shape[0] == 19:
-            yaw = obs[14]
-            pitch = obs[12]
-            roll = obs[13]
+            # yaw = obs[14]
+            # pitch = obs[12]
+            # roll = obs[13]
             next_target_g_v_x = obs[16]
             next_target_g_v_y = obs[17]
             next_target_g_v_z = obs[18]
-            r_matrix = get_rotation_matrix(yaw, pitch, roll)
+            # r_matrix = get_rotation_matrix(yaw, pitch, roll)
+            r_matrix = env.simulator.get_coordination_converter_to_body()
             next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
                     [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
             obs = np.append(obs, next_expected_v)          # extend the obs
@@ -83,13 +85,13 @@ def run_episode(env, agent, rpm, total_steps):
         # V_DIFF_LIST.append(-v_diff / 10.0)
         STEPS_LIST.append(total_steps + steps)
 
-        yaw = next_obs[14]
-        pitch = next_obs[12]
-        roll = next_obs[13]
+        # yaw = next_obs[14]
+        # pitch = next_obs[12]
+        # roll = next_obs[13]
         next_target_g_v_x = next_obs[16]
         next_target_g_v_y = next_obs[17]
         next_target_g_v_z = next_obs[18]
-        r_matrix_ypr = get_rotation_matrix(yaw, pitch, roll)
+        # r_matrix_ypr = get_rotation_matrix(yaw, pitch, roll)
         r_matrix = env.simulator.get_coordination_converter_to_body()
         next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
             [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
@@ -118,13 +120,14 @@ def evaluate(env, agent):
         total_reward, steps = 0, 0
         while True:
             if obs.shape[0] == 19:
-                yaw = obs[14]
-                pitch = obs[12]
-                roll = obs[13]
+                # yaw = obs[14]
+                # pitch = obs[12]
+                # roll = obs[13]
                 next_target_g_v_x = obs[16]
                 next_target_g_v_y = obs[17]
                 next_target_g_v_z = obs[18]
-                r_matrix = get_rotation_matrix(yaw, pitch, roll)
+                # r_matrix = get_rotation_matrix(yaw, pitch, roll)
+                r_matrix = env.simulator.get_coordination_converter_to_body()
                 next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
                     [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
                 obs = np.append(obs, next_expected_v)  # extend the obs
@@ -141,13 +144,14 @@ def evaluate(env, agent):
 
             next_obs, reward, done, info = env.step(action)
 
-            yaw = next_obs[14]
-            pitch = next_obs[12]
-            roll = next_obs[13]
+            # yaw = next_obs[14]
+            # pitch = next_obs[12]
+            # roll = next_obs[13]
             next_target_g_v_x = next_obs[16]
             next_target_g_v_y = next_obs[17]
             next_target_g_v_z = next_obs[18]
-            r_matrix = get_rotation_matrix(yaw, pitch, roll)
+            # r_matrix = get_rotation_matrix(yaw, pitch, roll)
+            r_matrix = env.simulator.get_coordination_converter_to_body()
             next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
                 [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
             next_obs = np.append(next_obs, next_expected_v)  # extend the obs
@@ -179,7 +183,7 @@ if __name__ == "__main__":
     # parl库也为DDPG算法内置了ReplayMemory，可直接从 parl.utils 引入使用
     rpm = ReplayMemory(int(MEMORY_SIZE), obs_dim + 3, act_dim)
 
-    best_test_reward = -5000
+    best_test_reward = -10000
     # agent.restore('model_dir/best.ckpt')
 
     # 启动训练

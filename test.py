@@ -12,6 +12,7 @@ from parl.algorithms import DDPG
 from quadrotorsim import QuadrotorSim
 from env import Quadrotor
 
+# disable gpu
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -34,6 +35,18 @@ def evaluate(env, agent):
         obs = env.reset()
         total_reward, steps = 0, 0
         while True:
+            if obs.shape[0] == 19:
+                # yaw = obs[14]
+                # pitch = obs[12]
+                # roll = obs[13]
+                next_target_g_v_x = obs[16]
+                next_target_g_v_y = obs[17]
+                next_target_g_v_z = obs[18]
+                # r_matrix = get_rotation_matrix(yaw, pitch, roll)
+                r_matrix = env.simulator.get_coordination_converter_to_body()
+                next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
+                    [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
+                obs = np.append(obs, next_expected_v)  # extend the obs
             batch_obs = np.expand_dims(obs, axis=0)
             action = agent.predict(batch_obs.astype('float32'))
             action = np.clip(action, -1.0, 1.0)
@@ -47,28 +60,19 @@ def evaluate(env, agent):
 
             next_obs, reward, done, info = env.step(action)
 
-            yaw = info['yaw']
-            pitch = info['pitch']
-            roll = info['roll']
-
-            r_matrix = get_rotation_matrix(yaw, pitch, roll)
-
-            next_v = np.squeeze(np.matmul(r_matrix, np.array(
-                [[info['next_target_g_v_x']], [info['next_target_g_v_y']], [info['next_target_g_v_z']]])))
-            next_v_x, next_v_y, next_v_z = next_v
-            print("next_v_x: {0}, next_v_y: {1}, next_y_z: {2}".format(next_v_x, next_v_y, next_v_z))
-            # print("obs: {0}".format(obs))
-            # print("next_obs: {0}, reward: {1}, info: {2}".format(next_obs, reward, info))
-            print("b_v_x: {0}, b_v_y:{1}, b_v_z:{2}.".format(info['b_v_x'], info['b_v_y'], info['b_v_z']))
-            b_v = np.array([info['b_v_x'], info['b_v_y'], info['b_v_z']], dtype="float32")
-            print("next_target_g_v_x: {0}, next_target_g_v_y: {1}, next_target_g_v_z: {2}".format(
-                info['next_target_g_v_x'], info['next_target_g_v_y'], info['next_target_g_v_z']))
-
-            print("reward: {}".format(reward))
-            print("Inner dot: {}".format(np.dot(next_v, b_v)))
+            # yaw = next_obs[14]
+            # pitch = next_obs[12]
+            # roll = next_obs[13]
+            next_target_g_v_x = next_obs[16]
+            next_target_g_v_y = next_obs[17]
+            next_target_g_v_z = next_obs[18]
+            # r_matrix = get_rotation_matrix(yaw, pitch, roll)
+            r_matrix = env.simulator.get_coordination_converter_to_body()
+            next_expected_v = np.squeeze(np.matmul(r_matrix, np.array(
+                [[next_target_g_v_x], [next_target_g_v_y], [next_target_g_v_z]], dtype="float32")))
+            next_obs = np.append(next_obs, next_expected_v)  # extend the obs
 
             obs = next_obs
-
             total_reward += reward
             steps += 1
 
@@ -77,7 +81,6 @@ def evaluate(env, agent):
             env.render()
         eval_reward.append(total_reward)
     return np.mean(eval_reward)
-
 
 def get_rotation_matrix(yaw, pitch, roll):
     m_yaw = np.array([[math.cos(yaw), -math.sin(yaw), 0],
@@ -120,7 +123,7 @@ def get_action_lst(env):
         action_lst.append(act)
         simulator.step(act.tolist(), 0.01)
 
-        next_obs, reward, done, info = env.step(np.array([15,15,15,15], dtype='float32'))
+        next_obs, reward, done, info = env.step(np.array([0.1,0.1,0.1,0.1], dtype='float32'))
 
         b_v_x = info['b_v_x']
         b_v_y = info['b_v_y']
@@ -168,14 +171,16 @@ def expected_behave(env, action_lst):
     return np.mean(eval_reward)
 
 if __name__ == "__main__":
-    env1 = Quadrotor(task="velocity_control", seed=0)
-    env2 = Quadrotor(task="velocity_control", seed=0)
-    action_lst = get_action_lst(env1)
-    reward = expected_behave(env2, action_lst)
-    print('best reward: {}'.format(reward))
-    exit()
+    # debug and get the expected standard answer.
+    # env1 = Quadrotor(task="velocity_control", seed=0)
+    # env2 = Quadrotor(task="velocity_control", seed=0)
+    # action_lst = get_action_lst(env1)
+    # reward = expected_behave(env2, action_lst)
+    # print('best reward: {}'.format(reward))
+    # exit()
     # 创建飞行器环境
-    env = make_env("Quadrotor", task="velocity_control", seed=0)
+    # env = make_env("Quadrotor", task="velocity_control", seed=0)
+    env = Quadrotor(task="velocity_control", seed=0)
     env.reset()
     obs_dim = env.observation_space.shape[0]
     act_dim = env.action_space.shape[0]
@@ -184,12 +189,9 @@ if __name__ == "__main__":
 
     model = QuadrotorModel(act_dim=act_dim)
     algorithm = DDPG(model, gamma=GAMMA, tau=TAU, actor_lr=ACTOR_LR, critic_lr=CRITIC_LR)
-    agent = QuadrotorAgent(algorithm=algorithm, obs_dim=obs_dim, act_dim=act_dim)
+    agent = QuadrotorAgent(algorithm=algorithm, obs_dim=obs_dim + 3, act_dim=act_dim)
 
-    # parl库也为DDPG算法内置了ReplayMemory，可直接从 parl.utils 引入使用
-    rpm = ReplayMemory(int(MEMORY_SIZE), obs_dim, act_dim)
-
-    ckpt = 'model_dir/best_v_diff_10.ckpt'  # 请设置ckpt为你训练中效果最好的一次评估保存的模型文件名称
+    ckpt = 'model_dir/best.ckpt'  # 请设置ckpt为你训练中效果最好的一次评估保存的模型文件名称
     agent.restore(ckpt)
     evaluate_reward = evaluate(env, agent)
     logger.info('Evaluate reward: {}'.format(evaluate_reward))  # 打印评估的reward
